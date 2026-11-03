@@ -4,8 +4,13 @@ class Element {constructor(){this.children=[];this.dataset={};this.classList={to
 const nodes=new Map();const get=s=>{if(!nodes.has(s))nodes.set(s,new Element());return nodes.get(s);};
 const data={ingredients:[{id:1,name:'Gin',category:'Alcolici'},{id:2,name:'Tonica',category:'Mixer'},{id:3,name:'Lime',category:'Extra'}],recipes:[{id:1,name:'Gin Tonic',description:'Fresco',glass:'Highball',instructions:'Mescola.',ingredients:[{id:1,name:'Gin',amount:'50 ml'},{id:2,name:'Tonica',amount:'150 ml'}]},{id:2,name:'Gin Lime',description:'Agrumato',glass:'Tumbler',instructions:'Agita.',ingredients:[{id:1,name:'Gin',amount:'50 ml'},{id:3,name:'Lime',amount:'20 ml'}]}]};
 get('#app-data').textContent=JSON.stringify(data);const filters=['all','ready','almost'].map(f=>{const e=new Element();e.dataset.filter=f;return e;});const storage=new Map();
+const sidebarIngredients=[...data.ingredients,{id:99,name:'Grappa dal database',category:'Distillati'}];
+const sidebarButtons=sidebarIngredients.map(i=>{const b=new Element();b.dataset={ingredientId:String(i.id),ingredientName:i.name,ingredientCategory:i.category};return b;});
 const events={};let catalogue=data;let offline=false;const fetchCalls=[];
-vm.runInNewContext(fs.readFileSync('app.js','utf8'),{window:{addEventListener:(name,fn)=>events[name]=fn},fetch:async(url,options)=>{fetchCalls.push({url,options});if(offline)throw new Error('offline');return {ok:true,json:async()=>catalogue};},document:{addEventListener:(name,fn)=>events[name]=fn,visibilityState:'visible',querySelector:get,querySelectorAll:()=>filters,createElement:()=>new Element()},localStorage:{getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,v),removeItem:k=>storage.delete(k)}});
+vm.runInNewContext(fs.readFileSync('app.js','utf8'),{window:{addEventListener:(name,fn)=>events[name]=fn},fetch:async(url,options)=>{fetchCalls.push({url,options});if(offline)throw new Error('offline');return {ok:true,json:async()=>catalogue};},document:{addEventListener:(name,fn)=>events[name]=fn,visibilityState:'visible',querySelector:get,querySelectorAll:selector=>selector==='#ingredients [data-ingredient-id]'?sidebarButtons:filters,createElement:()=>new Element()},localStorage:{getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,v),removeItem:k=>storage.delete(k)}});
+const manualChip=get('#ingredients').children.flatMap(g=>g.children[1]?.children||[]).find(b=>b.textContent==='+ Grappa dal database');
+assert.ok(manualChip,'Sidebar must include DB ingredients with no recipe and absent from recipe JSON');
+manualChip.onclick();assert.equal(get('#selected-count').textContent,1);get('#reset').onclick();
 assert.equal(get('#cards').children.length,2);assert.equal(get('#ready-count').textContent,0);
 get('#ingredients').children[0].children[1].children[0].onclick();
 assert.equal(get('#selected-count').textContent,1);assert.equal(storage.get('spirito-pantry'),'[1]');
