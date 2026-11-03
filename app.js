@@ -1,4 +1,14 @@
 let {ingredients,recipes}=JSON.parse(document.querySelector('#app-data').textContent);
+// PHP renders every row from ingredients into the sidebar. Use those same rows
+// for selection and matching, including ingredients not used by any recipe.
+const ingredientButtons=[...document.querySelectorAll('#ingredients [data-ingredient-id]')];
+if(ingredientButtons.length){
+ ingredients=ingredientButtons.map(button=>({
+  id:Number(button.dataset.ingredientId),
+  name:button.dataset.ingredientName,
+  category:button.dataset.ingredientCategory
+ }));
+}
 let saved=[];try{saved=JSON.parse(localStorage.getItem('spirito-pantry')||'[]');}catch{}
 const selected=new Set(Array.isArray(saved)?saved.filter(id=>ingredients.some(i=>i.id===id)):[]);
 let filter='all';
