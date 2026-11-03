@@ -1,5 +1,8 @@
 # Spirito
 
+Ovviamente AI slop, una prova per vedere cosa mi faceva al volo.
+Il risultato lo trovate qua: https://uran10.altervista.org/spirito
+
 Webapp in PHP con ricettario, selezione della dispensa e amministrazione. Interfaccia in italiano, responsive, stile cartoon con illustrazioni CSS. Nessuna dipendenza Composer o JavaScript da installare.
 
 ## Avvio
