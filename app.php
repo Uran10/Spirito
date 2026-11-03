@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 session_start(['cookie_httponly'=>true,'cookie_samesite'=>'Strict','cookie_secure'=>(!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')]);
+header('Cache-Control: no-store');
 function esc($s): string { return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
 $dir = getenv('DRINKS_DATA_DIR') ?: dirname(__DIR__).'/drinks-private';
 if (!is_dir($dir)) mkdir($dir,0700,true);
@@ -39,4 +40,9 @@ if($_SERVER['REQUEST_METHOD']==='POST') {
 $ingredients=$db->query('SELECT * FROM ingredients ORDER BY category,name')->fetchAll(PDO::FETCH_ASSOC);
 $recipes=$db->query('SELECT * FROM recipes ORDER BY id')->fetchAll(PDO::FETCH_ASSOC);
 foreach($recipes as &$r){$q=$db->prepare('SELECT i.*,ri.amount FROM recipe_ingredients ri JOIN ingredients i ON i.id=ri.ingredient_id WHERE recipe_id=?');$q->execute([$r['id']]);$r['ingredients']=$q->fetchAll(PDO::FETCH_ASSOC);}unset($r);
+if (isset($_GET['data'])) {
+ header('Content-Type: application/json; charset=utf-8');
+ echo json_encode(['ingredients'=>$ingredients,'recipes'=>$recipes],JSON_THROW_ON_ERROR|JSON_UNESCAPED_UNICODE);
+ exit;
+}
 function token(){echo '<input type="hidden" name="csrf" value="'.esc($_SESSION['csrf']).'">';}

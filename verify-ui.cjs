@@ -4,7 +4,8 @@ class Element {constructor(){this.children=[];this.dataset={};this.classList={to
 const nodes=new Map();const get=s=>{if(!nodes.has(s))nodes.set(s,new Element());return nodes.get(s);};
 const data={ingredients:[{id:1,name:'Gin',category:'Alcolici'},{id:2,name:'Tonica',category:'Mixer'},{id:3,name:'Lime',category:'Extra'}],recipes:[{id:1,name:'Gin Tonic',description:'Fresco',glass:'Highball',instructions:'Mescola.',ingredients:[{id:1,name:'Gin',amount:'50 ml'},{id:2,name:'Tonica',amount:'150 ml'}]},{id:2,name:'Gin Lime',description:'Agrumato',glass:'Tumbler',instructions:'Agita.',ingredients:[{id:1,name:'Gin',amount:'50 ml'},{id:3,name:'Lime',amount:'20 ml'}]}]};
 get('#app-data').textContent=JSON.stringify(data);const filters=['all','ready','almost'].map(f=>{const e=new Element();e.dataset.filter=f;return e;});const storage=new Map();
-vm.runInNewContext(fs.readFileSync('app.js','utf8'),{document:{querySelector:get,querySelectorAll:()=>filters,createElement:()=>new Element()},localStorage:{getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,v),removeItem:k=>storage.delete(k)}});
+const events={};let catalogue=data;let offline=false;const fetchCalls=[];
+vm.runInNewContext(fs.readFileSync('app.js','utf8'),{window:{addEventListener:(name,fn)=>events[name]=fn},fetch:async(url,options)=>{fetchCalls.push({url,options});if(offline)throw new Error('offline');return {ok:true,json:async()=>catalogue};},document:{addEventListener:(name,fn)=>events[name]=fn,visibilityState:'visible',querySelector:get,querySelectorAll:()=>filters,createElement:()=>new Element()},localStorage:{getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,v),removeItem:k=>storage.delete(k)}});
 assert.equal(get('#cards').children.length,2);assert.equal(get('#ready-count').textContent,0);
 get('#ingredients').children[0].children[1].children[0].onclick();
 assert.equal(get('#selected-count').textContent,1);assert.equal(storage.get('spirito-pantry'),'[1]');
@@ -17,3 +18,26 @@ filters[2].onclick();assert.equal(get('#cards').children.length,1);assert.equal(
 get('#reset').onclick();assert.equal(get('#selected-count').textContent,0);assert.equal(storage.has('spirito-pantry'),false);
 get('#ingredient-search').value='inesistente';get('#ingredient-search').input();assert.equal(get('#ingredients').children[0].textContent,'Nessun ingrediente trovato.');
 console.log('OK: ingredient selection, recipe matching, filters, persistence, details, reset and search.');
+
+(async()=>{
+ get('#ingredient-search').value='';
+ get('#ingredient-search').input();
+ filters[0].onclick();
+ get('#ingredients').children[0].children[1].children[0].onclick();
+ catalogue={...data,ingredients:[...data.ingredients,{id:4,name:'Rum scuro',category:'Alcolici'},{id:5,name:'Sciroppo di cocco',category:'Sciroppi'}]};
+ await events.pageshow();
+ let chips=get('#ingredients').children.flatMap(group=>group.children[1]?.children||[]);
+ assert.ok(chips.some(chip=>chip.textContent==='+ Rum scuro'));
+ assert.ok(chips.some(chip=>chip.textContent==='+ Sciroppo di cocco'));
+ assert.equal(get('#selected-count').textContent,1);
+ assert.equal(fetchCalls[0].url,'?data=1');
+ assert.equal(fetchCalls[0].options.cache,'no-store');
+ catalogue={...catalogue,ingredients:[...catalogue.ingredients,{id:6,name:'Amaro',category:'Liquori'}]};
+ await events.focus();
+ chips=get('#ingredients').children.flatMap(group=>group.children[1]?.children||[]);
+ assert.ok(chips.some(chip=>chip.textContent==='+ Amaro'));
+ offline=true;
+ await events.pageshow();
+ assert.equal(get('#selected-count').textContent,1);
+ console.log('OK: new ingredients on return and tab focus, custom categories, selection preserved, offline fallback.');
+})().catch(error=>{console.error(error);process.exitCode=1;});
