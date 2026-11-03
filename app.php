@@ -40,6 +40,18 @@ if($_SERVER['REQUEST_METHOD']==='POST') {
 $ingredients=$db->query('SELECT * FROM ingredients ORDER BY category,name')->fetchAll(PDO::FETCH_ASSOC);
 $recipes=$db->query('SELECT * FROM recipes ORDER BY id')->fetchAll(PDO::FETCH_ASSOC);
 foreach($recipes as &$r){$q=$db->prepare('SELECT i.*,ri.amount FROM recipe_ingredients ri JOIN ingredients i ON i.id=ri.ingredient_id WHERE recipe_id=?');$q->execute([$r['id']]);$r['ingredients']=$q->fetchAll(PDO::FETCH_ASSOC);}unset($r);
+$databaseInfo = null;
+if (isset($_GET['admin']) && !empty($_SESSION['admin'])) {
+ $databaseFiles = $db->query('PRAGMA database_list')->fetchAll(PDO::FETCH_ASSOC);
+ $databaseInfo = [
+  'path' => $databaseFiles[0]['file'],
+  'ingredients' => count($ingredients),
+  'recipes' => count($recipes),
+  'links' => (int)$db->query('SELECT COUNT(*) FROM recipe_ingredients')->fetchColumn(),
+  'without_ingredients' => array_filter($recipes, fn($recipe) => count($recipe['ingredients']) === 0),
+  'invalid_links' => (int)$db->query('SELECT COUNT(*) FROM recipe_ingredients ri LEFT JOIN ingredients i ON i.id=ri.ingredient_id LEFT JOIN recipes r ON r.id=ri.recipe_id WHERE i.id IS NULL OR r.id IS NULL')->fetchColumn(),
+ ];
+}
 if (isset($_GET['data'])) {
  header('Content-Type: application/json; charset=utf-8');
  echo json_encode(['ingredients'=>$ingredients,'recipes'=>$recipes],JSON_THROW_ON_ERROR|JSON_UNESCAPED_UNICODE);
