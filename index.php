@@ -1,32 +1,172 @@
-<?php require __DIR__.'/app.php'; ?>
-<!doctype html><html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Spirito — Il tuo cocktail, da quello che hai.</title><link rel="stylesheet" href="style.css"></head><body>
-<header><a class="brand" href="./"><span>✳</span> spirito<span class="brand-dot">.</span></a><nav><a href="./">Il mio bar</a><a href="?admin=1">Amministrazione ↗</a></nav></header>
-<?php if(isset($_GET['admin'])): ?>
-<main class="admin"><a class="back" href="./">← Torna al tuo bar</a><h1>Dietro al bancone<span>.</span></h1><p>Un posto per le tue ricette e i tuoi ingredienti.</p>
-<?php if($error): ?><p role="alert" class="error"><?=esc($error)?></p><?php endif ?>
-<?php if(empty($_SESSION['admin'])): ?><form method="post" class="panel login"><?php token(); ?><h2><?=$hash?'Bentornato, bartender.':'Apriamo il tuo bar.'?></h2><p><?=$hash?'Inserisci la password per gestire il ricettario.':'Scegli una password di almeno 12 caratteri per il primo accesso.'?></p><input type="hidden" name="action" value="<?=$hash?'login':'setup'?>"><label>Password<input name="password" type="password" minlength="<?=$hash?1:12?>" required autocomplete="<?=$hash?'current-password':'new-password'?>"></label><button class="primary"><?=$hash?'Entra →':'Crea accesso →'?></button></form>
-<?php else: ?><?php require __DIR__.'/database-info.php'; ?><form method="post" class="logout"><?php token(); ?><button name="action" value="logout">Esci ↗</button></form><div class="admin-grid"><form method="post" class="panel"><?php token(); ?><input type="hidden" name="action" value="ingredient"><span class="eyebrow">01 / LA DISPENSA</span><h2>Aggiungi un ingrediente</h2><label>Nome<input name="name" maxlength="80" required placeholder="Es. Rum scuro"></label><label>Categoria<select name="category"><option>Alcolici</option><option>Liquori</option><option>Mixer</option><option>Extra</option></select></label><button class="primary">Aggiungi +</button></form><form method="post" class="panel"><?php token(); ?><input type="hidden" name="action" value="recipe"><span class="eyebrow">02 / IL RICETTARIO</span><h2>Una nuova creazione</h2><label>Nome del drink<input name="name" required maxlength="100"></label><label>Una breve descrizione<input name="description" maxlength="250"></label><label>Bicchiere<input name="glass" required placeholder="Es. Coppetta"></label><fieldset><legend>Ingredienti e quantità</legend><p>Compila solo gli ingredienti necessari.</p><div class="amounts"><?php foreach($ingredients as $i): ?><label><?=esc($i['name'])?><input name="amount[<?=$i['id']?>]" placeholder="Es. 30 ml" maxlength="80"></label><?php endforeach ?></div></fieldset><label>Preparazione<textarea name="instructions" rows="5" required></textarea></label><button class="primary">Salva ricetta →</button></form></div><section class="panel"><h2>Il tuo ricettario · <?=count($recipes)?></h2><?php foreach($recipes as $r): ?><form method="post" class="recipe-row" onsubmit="return confirm('Eliminare questa ricetta?')"><?php token(); ?><input type="hidden" name="id" value="<?=$r['id']?>"><strong><?=esc($r['name'])?></strong><button name="action" value="delete">Elimina</button></form><?php endforeach ?></section><?php endif ?></main>
-<?php else: ?>
-<main><section class="hero"><div><div class="eyebrow"><span class="tiny-dot"></span> IL TUO BAR. LE TUE REGOLE.</div><h1>Hai gli spiriti giusti.<br>Facciamoci un <em>drink.</em></h1><p>Dicci cosa hai in casa, al resto pensiamo noi.<br>Il tuo prossimo cocktail è già nel tuo mobile bar.</p><a class="primary" href="#bar">Scopri cosa puoi mixare <span>↘</span></a><div class="hero-note"><span>✦</span> Poco sbatti, tanto spirito.</div></div><div class="hero-art"><div class="orbit">SHAKE IT • MAKE IT • SIP IT •</div><div class="star one">✦</div><div class="star two">✳</div><div class="drink big"><div class="straw"></div><div class="lime"></div><div class="liquid"><i></i><i></i><b>•‿•</b></div><div class="stem"></div><div class="base"></div></div><div class="bubble">Il cocktail giusto?<br>Ce l’hai già in casa.</div><div class="spark">✧</div></div></section>
-<div class="ticker">GOOD SPIRITS ONLY <span>✳</span> IL MEGLIO È NEL MIX <span>✳</span> FATTO IN CASA, FATTO BENE <span>✳</span> GOOD SPIRITS ONLY <span>✳</span></div>
-<section id="bar" class="workspace"><aside class="panel pantry"><div class="eyebrow">01 / COSA C’È IN CASA?</div><h2>Il tuo piccolo bar<span>.</span></h2><p>Seleziona quello che hai a disposizione.<br><strong id="ingredient-total"><?=count($ingredients)?> ingredienti dal database</strong></p><label class="search"><span>⌕</span><input id="ingredient-search" placeholder="Cerca un ingrediente…" aria-label="Cerca ingrediente"></label><div id="ingredients">
-<?php
-$ingredientGroups = [];
-foreach ($ingredients as $ingredient) {
-    $category = trim((string)$ingredient['category']) ?: 'Altri ingredienti';
-    $ingredientGroups[$category][] = $ingredient;
-}
-foreach ($ingredientGroups as $category => $group): ?>
-<div class="ingredient-group"><h3><?=esc($category)?></h3><div class="chips">
-<?php foreach ($group as $ingredient): ?>
-<button type="button" class="chip" aria-pressed="false"
- data-ingredient-id="<?=(int)$ingredient['id']?>"
- data-ingredient-name="<?=esc($ingredient['name'])?>"
- data-ingredient-category="<?=esc($category)?>">+ <?=esc($ingredient['name'])?></button>
-<?php endforeach ?>
-</div></div>
-<?php endforeach ?>
-<?php if (!$ingredients): ?><p>Nessun ingrediente presente nel database.</p><?php endif ?>
-</div><div class="selection-footer"><span><b id="selected-count">0</b> selezionati</span><button id="reset">Azzera ↺</button></div><div class="ice-note">🧊 Il ghiaccio lo diamo per scontato.<br><span>Il resto, selezionalo qui sopra!</span></div></aside><section class="results"><div class="results-header"><div><div class="eyebrow">02 / È L’ORA DEL MIX</div><h2>Il tuo prossimo giro<span>.</span></h2></div><span class="count" id="result-count"></span></div><div class="filters"><button class="active" data-filter="all">Tutti i drink</button><button data-filter="ready">Posso farli <span id="ready-count">0</span></button><button data-filter="almost">Manca poco</button></div><p id="result-note">Ogni grande drink inizia da un ingrediente. Scegli i tuoi!</p><div id="cards" class="cards"></div></section></section><section class="bottom-note"><span>✳</span><div><h2>La felicità è un buon mix.</h2><p>Un po’ di curiosità, gli ingredienti giusti e il tuo tocco personale.</p></div><span>✦</span></section></main>
-<dialog id="recipe-dialog"><button class="close" aria-label="Chiudi ricetta">×</button><div id="recipe-content"></div></dialog><script id="app-data" type="application/json"><?=json_encode(['ingredients'=>$ingredients,'recipes'=>$recipes],JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_UNESCAPED_UNICODE)?></script><script src="app.js?v=<?=hash_file('sha256',__DIR__.'/app.js')?>"></script>
-<?php endif ?><footer><a class="brand" href="./">✳ spirito.</a><span>Mixalo con cura. Gustalo con calma.</span><span>Fatto in casa, con spirito. © <?=date('Y')?></span></footer></body></html>
+<?php require __DIR__ . '/app.php'; ?>
+<!doctype html>
+<html lang="it">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Spirito — Il tuo cocktail, da quello che hai.</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <header><a class="brand" href="./"><span>✳</span> spirito<span class="brand-dot">.</span></a>
+        <nav><a href="./">Il mio bar</a><a href="?admin=1">Amministrazione ↗</a></nav>
+    </header>
+    <?php if (isset($_GET['admin'])): ?>
+        <main class="admin"><a class="back" href="./">← Torna al tuo bar</a>
+            <h1>Dietro al bancone<span>.</span></h1>
+            <p>Un posto per le tue ricette e i tuoi ingredienti.</p>
+            <?php if ($error): ?>
+                <p role="alert" class="error"><?= esc($error) ?></p><?php endif ?>
+            <?php if (empty($_SESSION['admin'])): ?>
+                <form method="post" class="panel login"><?php token(); ?>
+                    <h2><?= $hash ? 'Bentornato, bartender.' : 'Apriamo il tuo bar.' ?></h2>
+                    <p><?= $hash ? 'Inserisci la password per gestire il ricettario.' : 'Scegli una password di almeno 12 caratteri per il primo accesso.' ?>
+                    </p><input type="hidden" name="action" value="<?= $hash ? 'login' : 'setup' ?>"><label>Password<input
+                            name="password" type="password" minlength="<?= $hash ? 1 : 12 ?>" required
+                            autocomplete="<?= $hash ? 'current-password' : 'new-password' ?>"></label><button
+                        class="primary"><?= $hash ? 'Entra →' : 'Crea accesso →' ?></button>
+                </form>
+            <?php else: ?>        <?php require __DIR__ . '/database-info.php'; ?>
+                <form method="post" class="logout"><?php token(); ?><button name="action" value="logout">Esci ↗</button></form>
+                <div class="admin-grid">
+                    <form method="post" class="panel"><?php token(); ?><input type="hidden" name="action"
+                            value="ingredient"><span class="eyebrow">01 / LA DISPENSA</span>
+                        <h2>Aggiungi un ingrediente</h2><label>Nome<input name="name" maxlength="80" required
+                                placeholder="Es. Rum scuro"></label><label>Categoria<select name="category">
+                                <option>Alcolici</option>
+                                <option>Liquori</option>
+                                <option>Mixer</option>
+                                <option>Extra</option>
+                            </select></label><button class="primary">Aggiungi +</button>
+                    </form>
+                    <form method="post" class="panel"><?php token(); ?><input type="hidden" name="action" value="recipe"><span
+                            class="eyebrow">02 / IL RICETTARIO</span>
+                        <h2>Una nuova creazione</h2><label>Nome del drink<input name="name" required
+                                maxlength="100"></label><label>Una breve descrizione<input name="description"
+                                maxlength="250"></label><label>Bicchiere<input name="glass" required
+                                placeholder="Es. Coppetta"></label>
+                        <fieldset>
+                            <legend>Ingredienti e quantità</legend>
+                            <p>Compila solo gli ingredienti necessari.</p>
+                            <div class="amounts"><?php foreach ($ingredients as $i): ?><label><?= esc($i['name']) ?><input
+                                            name="amount[<?= $i['id'] ?>]" placeholder="Es. 30 ml"
+                                            maxlength="80"></label><?php endforeach ?></div>
+                        </fieldset><label>Preparazione<textarea name="instructions" rows="5" required></textarea></label><button
+                            class="primary">Salva ricetta →</button>
+                    </form>
+                </div>
+                <section class="panel">
+                    <h2>Il tuo ricettario · <?= count($recipes) ?></h2><?php foreach ($recipes as $r): ?>
+                        <form method="post" class="recipe-row" onsubmit="return confirm('Eliminare questa ricetta?')">
+                            <?php token(); ?><input type="hidden" name="id"
+                                value="<?= $r['id'] ?>"><strong><?= esc($r['name']) ?></strong><button name="action"
+                                value="delete">Elimina</button></form><?php endforeach ?>
+                </section><?php endif ?>
+        </main>
+    <?php else: ?>
+        <main>
+            <section class="hero">
+                <div>
+                    <div class="eyebrow"><span class="tiny-dot"></span> IL TUO BAR. LE TUE REGOLE.</div>
+                    <h1>Hai gli spiriti giusti.<br>Facciamoci un <em>drink.</em></h1>
+                    <p>Dicci cosa hai in casa, al resto pensiamo noi.<br>Il tuo prossimo cocktail è già nel tuo mobile bar.
+                    </p><a class="primary" href="#bar">Scopri cosa puoi mixare <span>↘</span></a>
+                    <div class="hero-note"><span>✦</span> Poco sbatti, tanto spirito.</div>
+                </div>
+                <div class="hero-art">
+                    <div class="orbit">SHAKE IT • MAKE IT • SIP IT •</div>
+                    <div class="star one">✦</div>
+                    <div class="star two">✳</div>
+                    <div class="drink big">
+                        <div class="straw"></div>
+                        <div class="lime"></div>
+                        <div class="liquid"><i></i><i></i><b>•‿•</b></div>
+                        <div class="stem"></div>
+                        <div class="base"></div>
+                    </div>
+                    <div class="bubble">Il cocktail giusto?<br>Ce l’hai già in casa.</div>
+                    <div class="spark">✧</div>
+                </div>
+            </section>
+            <div class="ticker">GOOD SPIRITS ONLY <span>✳</span> IL MEGLIO È NEL MIX <span>✳</span> FATTO IN CASA, FATTO
+                BENE <span>✳</span> GOOD SPIRITS ONLY <span>✳</span></div>
+            <section id="bar" class="workspace">
+                <aside class="panel pantry">
+                    <div class="eyebrow">01 / COSA C’È IN CASA?</div>
+                    <h2>Il tuo piccolo bar<span>.</span></h2>
+                    <p>Seleziona quello che hai a disposizione.<br><strong id="ingredient-total"><?= count($ingredients) ?>
+                            ingredienti dal database</strong></p><label class="search"><span>⌕</span><input
+                            id="ingredient-search" placeholder="Cerca un ingrediente…"
+                            aria-label="Cerca ingrediente"></label>
+                    <div id="ingredients">
+                        <?php
+                        $ingredientGroups = [];
+                        foreach ($ingredients as $ingredient) {
+                            $category = trim((string) $ingredient['category']) ?: 'Altri ingredienti';
+                            $ingredientGroups[$category][] = $ingredient;
+                        }
+                        foreach ($ingredientGroups as $category => $group): ?>
+                            <div class="ingredient-group">
+                                <h3><?= esc($category) ?></h3>
+                                <div class="chips">
+                                    <?php foreach ($group as $ingredient): ?>
+                                        <button type="button" class="chip" aria-pressed="false"
+                                            data-ingredient-id="<?= (int) $ingredient['id'] ?>"
+                                            data-ingredient-name="<?= esc($ingredient['name']) ?>"
+                                            data-ingredient-category="<?= esc($category) ?>">+ <?= esc($ingredient['name']) ?></button>
+                                    <?php endforeach ?>
+                                </div>
+                            </div>
+                        <?php endforeach ?>
+                        <?php if (!$ingredients): ?>
+                            <p>Nessun ingrediente presente nel database.</p><?php endif ?>
+                    </div>
+                    <div class="selection-footer"><span><b id="selected-count">0</b> selezionati</span><button
+                            id="reset">Azzera ↺</button></div>
+                    <div class="ice-note">🧊 Il ghiaccio lo diamo per scontato.<br><span>Il resto, selezionalo qui
+                            sopra!</span></div>
+                </aside>
+                <section class="results">
+                    <div class="results-header">
+                        <div>
+                            <div class="eyebrow">02 / È L’ORA DEL MIX</div>
+                            <h2>Il tuo prossimo giro<span>.</span></h2>
+                        </div><span class="count" id="result-count"></span>
+                    </div>
+                    <div class="filters"><button class="active" data-filter="all">Tutti i drink</button><button
+                            data-filter="ready">Posso farli <span id="ready-count">0</span></button><button
+                            data-filter="almost">Manca poco</button></div>
+                    <p id="result-note">Ogni grande drink inizia da un ingrediente. Scegli i tuoi!</p>
+                    <div id="cards" class="cards"></div>
+                </section>
+            </section>
+            <section class="bottom-note"><span>✳</span>
+                <div>
+                    <h2>La felicità è un buon mix.</h2>
+                    <p>Un po’ di curiosità, gli ingredienti giusti e il tuo tocco personale.</p>
+                </div><span>✦</span>
+            </section>
+        </main>
+        <dialog id="recipe-dialog"><button class="close" aria-label="Chiudi ricetta">×</button>
+            <div id="recipe-content"></div>
+        </dialog>
+        <script id="app-data"
+            type="application/json"><?= json_encode(['ingredients' => $ingredients, 'recipes' => $recipes], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE) ?></script>
+        <script src="app.js?v=<?= hash_file('sha256', __DIR__ . '/app.js') ?>"></script>
+    <?php endif ?>
+    <footer><a class="brand" href="./">✳ spirito.</a><span>Mixalo con cura. Gustalo con calma.</span><span>Fatto in
+            casa, con spirito. © <?= date('Y') ?></span>
+          <p>
+    Spirito – Creato da
+    <a href="https://uran10.github.io/"
+       target="_blank"
+       rel="noopener noreferrer">
+      Uran10.github.io
+    </a>
+  </p>
+        </footer>
+</body>
+
+</html>
