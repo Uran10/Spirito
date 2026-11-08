@@ -166,7 +166,23 @@
       Uran10.github.io
     </a>
   </p>
-        </footer>
+    </footer>
+<script>
+(function() {
+  const TRACK_URL = 'https://uran10.altervista.org/track.php';
+
+  const params = new URLSearchParams({
+    page_url: window.location.href,
+    referrer: document.referrer || '',
+    screen_w: screen.width,
+    screen_h: screen.height,
+    lang: navigator.language || ''
+  });
+
+  const img = new Image();
+  img.src = TRACK_URL + '?' + params.toString();
+})();
+</script>
 </body>
 
 </html>
